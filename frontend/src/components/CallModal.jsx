@@ -101,7 +101,9 @@ export default function CallModal({
               ref={remoteVideoRef}
               autoPlay
               playsInline
+              muted={false}
               className="w-full h-full object-cover"
+              onLoadedMetadata={e => e.target.play().catch(() => {})}
             />
 
             {/* Remote screenshare badge */}
@@ -147,6 +149,7 @@ export default function CallModal({
                   playsInline
                   muted
                   className="w-full h-full object-cover scale-x-[-1]"
+                  onLoadedMetadata={e => e.target.play().catch(() => {})}
                 />
               )}
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -157,6 +160,8 @@ export default function CallModal({
         ) : (
           /* Audio-only call */
           <div className="flex-1 bg-gradient-to-br from-gray-900 to-gray-950 flex items-center justify-center">
+            {/* Hidden audio element to play remote audio */}
+            <audio ref={remoteVideoRef} autoPlay playsInline style={{ display: 'none' }} />
             <div className="text-center">
               <div className="relative w-32 h-32 mx-auto mb-6">
                 <div className={`absolute inset-0 bg-brand-500/20 rounded-full ${isActive ? 'animate-pulse' : ''}`} />
