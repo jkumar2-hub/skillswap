@@ -3,8 +3,8 @@
 > Students exchange skills — teach what you know, learn what you don't. No money needed.
 
 ## Live URLs
-- **Frontend:** https://skillswap-seven-sigma.vercel.app
-- **Backend:**  https://skillswap-backend-cie7.onrender.com
+- **Frontend:** https://skillswap-two-woad.vercel.app
+- **Backend:**  https://skillswap-backend-eerb.onrender.com
 
 ## Tech Stack
 | Layer | Tech |
