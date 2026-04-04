@@ -1,0 +1,15 @@
+node_modules/
+*/node_modules/
+.env
+backend/.env
+frontend/.env
+frontend/.env.production
+*.db
+*.db-wal
+*.db-shm
+frontend/dist/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
