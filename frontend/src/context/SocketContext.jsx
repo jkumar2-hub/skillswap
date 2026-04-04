@@ -7,6 +7,7 @@ const SocketContext = createContext(null);
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
   const socketRef = useRef(null);
+  const [socket, setSocket] = useState(null); // ← expose as state so consumers re-render on connect
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -14,6 +15,7 @@ export const SocketProvider = ({ children }) => {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
+        setSocket(null);
         setConnected(false);
       }
       return;
@@ -24,7 +26,7 @@ export const SocketProvider = ({ children }) => {
 
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
-    socketRef.current = io(SOCKET_URL, {
+    const s = io(SOCKET_URL, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
@@ -32,34 +34,50 @@ export const SocketProvider = ({ children }) => {
       transports: ['websocket', 'polling'],
     });
 
-    socketRef.current.on('connect', () => {
+    s.on('connect', () => {
+      console.log('🔌 Socket connected:', s.id);
+      socketRef.current = s;
+      setSocket(s);       // ← triggers re-render in consumers
       setConnected(true);
-      console.log('🔌 Socket connected');
     });
-    socketRef.current.on('disconnect', () => setConnected(false));
-    socketRef.current.on('connect_error', err => console.warn('Socket error:', err.message));
+
+    s.on('disconnect', () => {
+      console.log('🔌 Socket disconnected');
+      setConnected(false);
+    });
+
+    s.on('reconnect', () => {
+      console.log('🔌 Socket reconnected');
+      socketRef.current = s;
+      setSocket(s);
+      setConnected(true);
+    });
+
+    s.on('connect_error', err => console.warn('Socket error:', err.message));
+
+    socketRef.current = s;
 
     return () => {
-      socketRef.current?.disconnect();
+      s.disconnect();
       socketRef.current = null;
+      setSocket(null);
       setConnected(false);
     };
   }, [user]);
 
   const emit = useCallback((event, data) => {
-    if (socketRef.current?.connected) socketRef.current.emit(event, data);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(event, data);
+    } else {
+      console.warn('Socket not connected, cannot emit:', event);
+    }
   }, []);
 
-  const on = useCallback((event, cb) => {
-    socketRef.current?.on(event, cb);
-  }, []);
-
-  const off = useCallback((event, cb) => {
-    socketRef.current?.off(event, cb);
-  }, []);
+  // ← these now just return the socket for direct use
+  const getSocket = useCallback(() => socketRef.current, []);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, connected, emit, on, off }}>
+    <SocketContext.Provider value={{ socket, connected, emit, getSocket }}>
       {children}
     </SocketContext.Provider>
   );

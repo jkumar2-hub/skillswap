@@ -9,7 +9,7 @@ import { Send, MessageSquare, ArrowLeft, Phone, Video } from 'lucide-react';
 export default function Messages() {
   const { userId } = useParams();
   const { user } = useAuth();
-  const { emit, on, off } = useSocket();
+  const { socket, emit } = useSocket();
   const { startCall } = useCall();
   const navigate = useNavigate();
 
@@ -69,17 +69,17 @@ export default function Messages() {
       if (String(senderId) === String(activeUserIdRef.current)) setRemoteTyping(false);
     };
 
-    on('message:new', handleNewMessage);
-    on('typing:start', handleTypingStart);
-    on('typing:stop', handleTypingStop);
+    if (!socket) return;
+    socket.on('message:new', handleNewMessage);
+    socket.on('typing:start', handleTypingStart);
+    socket.on('typing:stop', handleTypingStop);
 
     return () => {
-      off('message:new', handleNewMessage);
-      off('typing:start', handleTypingStart);
-      off('typing:stop', handleTypingStop);
+      socket.off('message:new', handleNewMessage);
+      socket.off('typing:start', handleTypingStart);
+      socket.off('typing:stop', handleTypingStop);
     };
-  }, [on, off, fetchConversations]);
-
+  }, [socket, fetchConversations]);
   const loadMessages = async (uid) => {
     setLoading(true);
     try {

@@ -26,7 +26,7 @@ const ICE_SERVERS = {
 };
 
 export function useWebRTC() {
-  const { emit, on, off } = useSocket();
+  const { socket, emit, getSocket } = useSocket();
   const { user } = useAuth();
 
   const [callState, setCallState] = useState('idle');
@@ -300,15 +300,18 @@ export function useWebRTC() {
     }
   }, [isScreenSharing, emit]);
 
-  // ── Socket event listeners ──
+// ── Socket event listeners ──
+  // Depend on `socket` so listeners re-register whenever socket reconnects
   useEffect(() => {
+    const s = getSocket();
+    if (!s) return;
+
     const handleIncoming = ({ callerId, callerName, callType }) => {
       console.log('📞 Incoming call from', callerName, callType);
       setIncomingCall({ callerId, callerName, callType });
       setCallState('ringing');
     };
 
-    // Caller receives: callee accepted, now send offer
     const handleAnswered = async ({ accepted, answererId }) => {
       if (!accepted) {
         alert('Call was declined.');
@@ -318,18 +321,16 @@ export function useWebRTC() {
         return;
       }
 
-      const type = callTypeRef.current; // ✅ Use ref, not stale closure
+      const type = callTypeRef.current;
       console.log('✅ Call accepted, creating offer. type:', type);
 
       try {
         const stream = await getMedia(type);
         const peer = createPeer(answererId);
-
         stream.getTracks().forEach(track => {
           console.log('Caller adding track:', track.kind);
           peer.addTrack(track, stream);
         });
-
         const offer = await peer.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: type === 'video',
@@ -344,7 +345,6 @@ export function useWebRTC() {
       }
     };
 
-    // Callee receives the offer → create answer
     const handleOffer = async ({ offer, callerId }) => {
       console.log('📥 Got offer from', callerId);
       if (!peerRef.current) {
@@ -353,8 +353,7 @@ export function useWebRTC() {
       }
       try {
         await peerRef.current.setRemoteDescription(new RTCSessionDescription(offer));
-        await drainCandidates(); // ✅ Drain any queued ICE candidates
-
+        await drainCandidates();
         const answer = await peerRef.current.createAnswer();
         await peerRef.current.setLocalDescription(answer);
         emit('webrtc:answer', { targetUserId: callerId, answer });
@@ -364,22 +363,19 @@ export function useWebRTC() {
       }
     };
 
-    // Caller receives the answer
     const handleAnswer = async ({ answer }) => {
       console.log('📥 Got answer');
       if (!peerRef.current) return;
       try {
         await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-        await drainCandidates(); // ✅ Drain any queued ICE candidates
+        await drainCandidates();
       } catch (err) {
         console.error('Set remote description error:', err);
       }
     };
 
-    // ICE candidate received
     const handleIce = async ({ candidate }) => {
       if (!peerRef.current || !peerRef.current.remoteDescription) {
-        // Queue it — remote description not set yet
         pendingCandidates.current.push(candidate);
         return;
       }
@@ -401,24 +397,28 @@ export function useWebRTC() {
       setIsVideoOff(false);
     };
 
-    on('call:incoming', handleIncoming);
-    on('call:answered', handleAnswered);
-    on('webrtc:offer', handleOffer);
-    on('webrtc:answer', handleAnswer);
-    on('webrtc:ice-candidate', handleIce);
-    on('call:screenshare', handleScreenShare);
-    on('call:ended', handleEnded);
+    // ✅ Register directly on socket instance
+    s.on('call:incoming', handleIncoming);
+    s.on('call:answered', handleAnswered);
+    s.on('webrtc:offer', handleOffer);
+    s.on('webrtc:answer', handleAnswer);
+    s.on('webrtc:ice-candidate', handleIce);
+    s.on('call:screenshare', handleScreenShare);
+    s.on('call:ended', handleEnded);
+
+    console.log('✅ WebRTC listeners registered on socket', s.id);
 
     return () => {
-      off('call:incoming', handleIncoming);
-      off('call:answered', handleAnswered);
-      off('webrtc:offer', handleOffer);
-      off('webrtc:answer', handleAnswer);
-      off('webrtc:ice-candidate', handleIce);
-      off('call:screenshare', handleScreenShare);
-      off('call:ended', handleEnded);
+      s.off('call:incoming', handleIncoming);
+      s.off('call:answered', handleAnswered);
+      s.off('webrtc:offer', handleOffer);
+      s.off('webrtc:answer', handleAnswer);
+      s.off('webrtc:ice-candidate', handleIce);
+      s.off('call:screenshare', handleScreenShare);
+      s.off('call:ended', handleEnded);
     };
-  }, [on, off, emit, getMedia, createPeer, endCall, cleanupCall, drainCandidates]);
+  }, [socket, emit, getMedia, createPeer, endCall, cleanupCall, drainCandidates]);
+  // ↑ `socket` in deps means this re-runs every time socket connects/reconnects
 
   return {
     callState, callType, remoteUser, incomingCall,
