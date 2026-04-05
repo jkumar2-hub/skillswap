@@ -102,7 +102,7 @@ export default function CallModal({
               autoPlay
               playsInline
               muted={false}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain bg-black"
               onLoadedMetadata={e => e.target.play().catch(() => {})}
             />
 
