@@ -11,7 +11,7 @@ export default function CallModal({
   callState, callType, remoteUser, incomingCall,
   isScreenSharing, remoteScreenSharing,
   isMuted, isVideoOff, callDuration,
-  localVideoRef, remoteVideoRef,
+  localVideoRef, remoteVideoRef, localStreamRef,
   onAccept, onReject, onEnd,
   onToggleMute, onToggleVideo, onToggleScreenShare,
 }) {
@@ -144,12 +144,18 @@ export default function CallModal({
                 </div>
               ) : (
                 <video
-                  ref={localVideoRef}
+                  ref={(el) => {
+                    localVideoRef.current = el;
+                    // If stream already exists, assign it immediately when ref mounts
+                    if (el && localStreamRef?.current) {
+                      el.srcObject = localStreamRef.current;
+                      el.play().catch(() => {});
+                    }
+                  }}
                   autoPlay
                   playsInline
                   muted
                   className="w-full h-full object-cover scale-x-[-1]"
-                  onLoadedMetadata={e => e.target.play().catch(() => {})}
                 />
               )}
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">

@@ -166,7 +166,6 @@ export function useWebRTC() {
 
   // ── Get user media ──
   const getMedia = useCallback(async (type) => {
-    // Stop any existing streams first
     localStreamRef.current?.getTracks().forEach(t => t.stop());
 
     const constraints = type === 'audio'
@@ -179,9 +178,25 @@ export function useWebRTC() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
+
+      // Try to assign immediately, then keep retrying until ref is mounted
+      const assignLocalStream = () => {
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play().catch(() => {});
+        } else {
+          const interval = setInterval(() => {
+            if (localVideoRef.current) {
+              localVideoRef.current.srcObject = stream;
+              localVideoRef.current.play().catch(() => {});
+              clearInterval(interval);
+            }
+          }, 100);
+          setTimeout(() => clearInterval(interval), 8000);
+        }
+      };
+      assignLocalStream();
+
       console.log('🎥 Got local media:', stream.getTracks().map(t => t.kind));
       return stream;
     } catch (err) {
@@ -420,11 +435,11 @@ export function useWebRTC() {
   }, [socket, emit, getMedia, createPeer, endCall, cleanupCall, drainCandidates]);
   // ↑ `socket` in deps means this re-runs every time socket connects/reconnects
 
-  return {
+ return {
     callState, callType, remoteUser, incomingCall,
     isScreenSharing, remoteScreenSharing,
     isMuted, isVideoOff, callDuration,
-    localVideoRef, remoteVideoRef,
+    localVideoRef, remoteVideoRef, localStreamRef,
     startCall, acceptCall, rejectCall, endCall,
     toggleMute, toggleVideo, toggleScreenShare,
   };

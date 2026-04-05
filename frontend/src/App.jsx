@@ -39,6 +39,7 @@ function CallProvider({ children }) {
           callDuration={webrtc.callDuration}
           localVideoRef={webrtc.localVideoRef}
           remoteVideoRef={webrtc.remoteVideoRef}
+          localStreamRef={webrtc.localStreamRef}
           onAccept={webrtc.acceptCall}
           onReject={webrtc.rejectCall}
           onEnd={webrtc.endCall}
