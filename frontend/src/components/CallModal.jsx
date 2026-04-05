@@ -133,11 +133,11 @@ export default function CallModal({
 
             {/* Local video (PiP) */}
             <div
-              className={`absolute bottom-24 right-4 transition-all duration-300 cursor-pointer group
-                ${pip ? 'w-12 h-12 rounded-full overflow-hidden' : 'w-32 h-44 rounded-2xl overflow-hidden'}`}
-              onClick={() => setPip(p => !p)}
-              style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}
-            >
+            className={`absolute bottom-24 right-4 transition-all duration-300 cursor-pointer group
+              ${pip ? 'w-8 h-8 rounded-full overflow-hidden' : 'w-24 h-32 md:w-28 md:h-36 rounded-2xl overflow-hidden'}`}
+            onClick={() => setPip(p => !p)}
+            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}
+          >
               {isVideoOff ? (
                 <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                   <VideoOff size={pip ? 16 : 24} className="text-gray-500" />
