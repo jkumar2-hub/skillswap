@@ -35,6 +35,3 @@ cd backend && npm install && npm run dev
 # Frontend
 cd frontend && npm install && npm run dev
 ```
-
-## Deploy
-See DEPLOY.md for full deployment guide.
