@@ -11,7 +11,7 @@
 |-------|------|
 | Frontend | React 18 + Vite + Tailwind CSS |
 | Backend | Node.js + Express + Socket.io |
-| Database | PostgreSQL (Render) |
+| Database | PostgreSQL- SUPABASE |
 | Realtime | WebRTC (calls) + Socket.io (messages) |
 | Auth | JWT |
 | Deploy | Vercel + Render |
